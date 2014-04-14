@@ -2,7 +2,12 @@
 
 import socket
 
-
+class UserError(Exception):
+	def __init__(self, message):
+		self.message = message
+	def __str__(self):
+		return repr(self.message)
+		
 if __name__ == "__main__":
 	s = socket.socket()
 	#host = socket.gethostname()
@@ -18,16 +23,20 @@ if __name__ == "__main__":
 		print 'Got connection from', addr
 		extindex=filename.index(".")
 		ext=set([filename[extindex:]])
-		if filename!="":
-			if len(ext.intersection(whitelist))==1:
-				try:
-					with open(filename, "r") as myfile:
-						data=myfile.read()
-						c.send('\x00'+data)
-				except:
-					c.send('\x01Unable to open a file')
-			else:
-				c.send('\x01Sorry!This format is not in whitelist')
-		else:
-			c.send('\x01No file name received')
+		try:
+			if len(filename) == 0:
+				raise UserError('No filename recived')
+
+			if len(ext.intersection(whitelist)) != 1:
+				raise UserError('Sorry! This format is not in whitelist')
+
+			with open(filename, "r") as myfile:
+				data = myfile.read()
+				c.send('\x00'+data)
+
+		except UserError as e:	
+			c.send('\x01' + e.message)	
+		except Exception, e:
+			c.send('\x02' + str(e))
+			
 		c.close()
